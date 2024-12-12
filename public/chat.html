@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="card mx-auto" style="max-width: 600px;">
+            <div class="card-header bg-primary text-white">
+                <h5 id="room-name" class="mb-0">Room: Loading...</h5>
+            </div>
+            <div class="card-body overflow-auto" id="messages" style="height: 300px; background-color: #f8f9fa;">
+                <!-- Messages will appear here -->
+            </div>
+            <div class="card-footer">
+                <form id="chat-form" class="d-flex">
+                    <input id="message-input" type="text" class="form-control me-2" placeholder="Type your message..." autocomplete="off">
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const params = new URLSearchParams(window.location.search);
+        const username = params.get('username');
+        const room = params.get('room');
+    
+        // Join room
+        socket.emit('joinRoom', { username, room });
+    
+        // Display room name
+        document.getElementById('room-name').textContent = `Room: ${room}`;
+    
+        // Handle message form
+        const chatForm = document.getElementById('chat-form');
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const message = document.getElementById('message-input').value;
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            socket.emit('chat message', { username, room, message, time });
+            document.getElementById('message-input').value = '';
+        });
+    
+        // Display messages
+        const messagesDiv = document.getElementById('messages');
+        socket.on('chat message', ({ username, message, time }) => {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('mb-2', 'p-2', 'rounded', 'bg-light', 'border');
+            messageElement.innerHTML = `<strong>${username}</strong> <span class="text-muted" style="font-size: 0.85em;">(${time})</span>: ${message}`;
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+    
+        // System messages
+        socket.on('message', (msg) => {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('mb-2', 'p-2', 'rounded', 'bg-secondary', 'text-white', 'text-center');
+            messageElement.textContent = msg;
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+    </script>
+    
+</body>
+</html>
